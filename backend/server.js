@@ -18,6 +18,11 @@ const indexRoutes = require("./routes/index");
 const doctorRoutes = require("./routes/doctor");
 const patientRoutes = require("./routes/patient");
 
+app.get("/test", (req, res) => {
+    console.log("TEST!");
+    res.send("Found route!");
+});
+
 app.use("/index", indexRoutes);
 app.use("/doctor", doctorRoutes);
 app.use("/patient", patientRoutes);
