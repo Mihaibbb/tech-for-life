@@ -26,5 +26,5 @@ app.get("/test", (req, res) => {
 app.use("/index", indexRoutes);
 app.use("/doctor", doctorRoutes);
 app.use("/patient", patientRoutes);
-
+console.log('PORT', process.env.PORT || 4043);
 app.listen(process.env.PORT || 4043, () => console.log("Started on port 4043"));
