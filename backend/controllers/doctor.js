@@ -1,4 +1,4 @@
-const bcrypt = require("bcrypt");
+const bcrypt = require("bcryptjs");
 const db = require("../db");
 
 exports.createDoctor = async (req, res, next) => {
