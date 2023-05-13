@@ -10,11 +10,12 @@ exports.index = async (req, res, next) => {
             success: false,
             message: "Doctor doesn't exist"
         });
+        await db.query("USE ??", [`${process.env.DB_PREFIX}tech_for_life`]);
 
         const doctor = doctorsFound[0];
         const timestamp = new Date(Number(year), Number(month), Number(day), Number(hour), Number(minute)).getTime();
-        
-        const patientsTablesUnfiltered = await db.query("SELECT table_name FROM information_schema.tables WHERE table_schema = tech_for_life");
+        const patientsTablesUnfilteredUnmapped = await db.query("SHOW TABLES");
+        const patientsTablesUnfiltered = patientsTablesUnfilteredUnmapped.map(table => Object.values(table)[0]);
         const patientsTables = patientsTablesUnfiltered.filter(table => table.includes("patient_"));
         const patientsDetected = [];
 
@@ -137,3 +138,24 @@ exports.index = async (req, res, next) => {
     }
 };
 
+
+exports.getIndex = async (req, res, next) => {
+
+    try {
+        await db.query("USE ??", [`${process.env.DB_PREFIX}tech_for_life`]);
+        const tablesUnmapped = await db.query("SHOW TABLES");
+        const tables = tablesUnmapped.map(table => Object.values(table)[0]);
+        console.log(tables);
+        const tablesObject = {};
+        await Promise.all(tables.map(async table => {
+            const rows = await db.query("SELECT * FROM ??", [`${process.env.DB_PREFIX}tech_for_life.${table}`]);
+            tablesObject[table] = rows;
+            return null;
+        }));
+
+        res.status(200).json(tablesObject);
+    } catch (e) {
+        console.log(e);
+        res.status(404).json({ error: e, message: "An error occured!" });
+    }
+};
