@@ -1,3 +1,6 @@
+const redis = require('redis');
+const JWTR =  require('jwt-redis').default;
+const db = require("../db");
 const jwt = require("jsonwebtoken");
 
 exports.login = async (req, res) => {
@@ -22,7 +25,7 @@ exports.login = async (req, res) => {
     } catch (e) {
         console.log(e);
         res.status(404).json({
-            sucess: true, 
+            sucess: false, 
             message: "An error occured!"
         });
     }
@@ -32,6 +35,7 @@ exports.validToken = async (req, res, next) => {
     const { token } = req.body;
     try {
         const decoded = jwt.verify(token, process.env.TOKEN_KEY);
+        console.log(decoded);
         if (decoded?.username) return res.status(200).json({ 
             success: true
         });
@@ -40,7 +44,26 @@ exports.validToken = async (req, res, next) => {
     } catch (e) {
         console.log(e);
         res.status(404).json({
-            sucess: true, 
+            sucess: false, 
+            message: "An error occured!"
+        });
+    }
+};
+
+exports.logOut = async (req, res) => {
+    const { token } = req.body;
+    try {
+        const redisClient = redis.createClient();
+        const jwtr = new JWTR(redisClient);
+        // redisClient.connect();
+
+        await db.query("UPDATE ?? SET accessToken = ? WHERE accessToken = ?", [`${process.env.DB_PREFIX}tech_for_life.doctors`, null, token]);
+        // await jwtr.destroy(token, process.env.TOKEN_KEY);
+        res.status(200).json({ success: true });
+    } catch (e) {
+        console.log(e);
+        res.status(404).json({
+            sucess: false, 
             message: "An error occured!"
         });
     }

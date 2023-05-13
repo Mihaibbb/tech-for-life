@@ -18,7 +18,7 @@ app.post("/", (req, res) => {
 const indexRoutes = require("./routes/index");
 const doctorRoutes = require("./routes/doctor");
 const patientRoutes = require("./routes/patient");
-const authRoutes = requier("./routes/auth");
+const authRoutes = require("./routes/auth");
 const { getIndex } = require("./controllers/index");
 
 app.get("/test", (req, res) => {
@@ -30,5 +30,6 @@ app.use("/index", indexRoutes);
 app.use("/doctor", doctorRoutes);
 app.use("/patient", patientRoutes);
 app.use("/auth", authRoutes);
+
 console.log('PORT', process.env.PORT || 4043);
 app.listen(process.env.PORT || 4043, () => console.log("Started on port 4043"));
