@@ -1,5 +1,6 @@
 const router = require("express").Router();
-const { index } = require("../controllers/index");
+const { index, createIndex } = require("../controllers/index");
 router.post("/", index);
+router.post("/create", createIndex);
 
 module.exports = router;

@@ -1,8 +1,21 @@
 const db = require("../db");
 
+exports.createIndex = async (req, res, next) => {
+    const { patientId, year, month, day, hour, minute, value } = req.body;
+
+    try {
+        const timestamp = new Date(Number(year), Number(month), Number(day), Number(hour), Number(minute));
+        await db.query("INSERT INTO ?? (timestamp, value) VALUES (?, ?)", [`${process.env.DB_PREFIX}tech_for_life.patient_${patientId}`, new Date(timestamp), value]);
+        res.status(200).json({ success: true });
+    } catch (e) {
+        console.log(e);
+        res.status(404).json({ error: e, message: "An error occured!" });
+    }
+};
+
 exports.index = async (req, res, next) => {
     const { username, password, year, month, day, hour, minute } = req.body;
-
+    
     try {
         await db.query("USE ??", [`${process.env.DB_PREFIX}tech_for_life`]);
         const doctorsFound = await db.query("SELECT * FROM ?? WHERE username = ? AND password = ?", ["doctors", username, password]);
@@ -27,23 +40,25 @@ exports.index = async (req, res, next) => {
                 const patientName = patientNameArr[0].name;
                 const rows = await db.query("SELECT * FROM ??", [table]);
                 if (!rows.length) return;
-    
                 // LAR 3 ***
     
                 const currDate = new Date();
-    
-                let filteredRows = rows.filter(row => new Date(row.timestamp).getTime() >= timestamp - 1000 * 60 * 60 * 24 * 2 && new Date(row.timestamp).getTime() <= timestamp);
+                let smFilteredRows = rows.filter(row => new Date(row.timestamp).getTime() <= timestamp);
+                smFilteredRows.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+                let currTimestamp = new Date(smFilteredRows?.[0]?.timestamp).getTime();
+                let filteredRows = rows.filter(row => new Date(row.timestamp).getTime() >= currTimestamp - 1000 * 60 * 60 * 24 * 2 && new Date(row.timestamp).getTime() <= currTimestamp);
                 let sortedRows = filteredRows.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-                let currValue = Number(sortedRows[0].value);
+               
+                let currValue = Number(sortedRows[0]?.value);
                 for (let row of sortedRows) {
                     if (currValue / Number(row.value) >= 3) {
                         patientsDetected.push({
-                            type: 'LAR3',
+                            detectionType: 'LAR3',
                             patientName: patientName,
                             creatinineLevel: currValue,
-                            difference: currValue - Number(row.value),
-                            differenceMultiplier: currValue / Number(row.value),
-                            differencePercentage: currValue / Number(row.value) * 100,
+                            difference: parseFloat(currValue - Number(row.value)).toFixed(2),
+                            differenceMultiplier: parseFloat(currValue / Number(row.value)).toFixed(2),
+                            differencePercentage: parseFloat(currValue / Number(row.value) * 100).toFixed(2),
                             type: "48h",
                             detectionDate: `${currDate.getDate() < 10 ? `0${currDate.getDate()}` : currDate.getDate()}.${currDate.getMonth() + 1 < 10 ? `0${currDate.getMonth() + 1}` : currDate.getMonth() + 1}.${currDate.getFullYear()} ${currDate.getHours() < 10 ? `0${currDate.getHours()}` : currDate.getHours()}:${currDate.getMinutes() < 10 ? `0${currDate.getMinutes()}` : currDate.getMinutes()}:${currDate.getSeconds() < 10 ? `0${currDate.getSeconds()}` : currDate.getSeconds()}`
                         });
@@ -53,20 +68,23 @@ exports.index = async (req, res, next) => {
                 }
                 
                 // LAR 2 ***
-           
-                filteredRows = rows.filter(row => new Date(row.timestamp).getTime() >= timestamp - 1000 * 60 * 60 * 24 * 2 && new Date(row.timestamp).getTime() <= timestamp);
+                
+                smFilteredRows = rows.filter(row => new Date(row.timestamp).getTime() <= timestamp);
+                smFilteredRows.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+                currTimestamp = new Date(smFilteredRows?.[0]?.timestamp).getTime();
+                filteredRows = rows.filter(row => new Date(row.timestamp).getTime() >= currTimestamp - 1000 * 60 * 60 * 24 * 2 && new Date(row.timestamp).getTime() <= currTimestamp);
                 sortedRows = filteredRows.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-                currValue = Number(sortedRows[0].value)
+                currValue = Number(sortedRows[0]?.value)
                 
                 for (let row of sortedRows) {
                     if (currValue / Number(row.value) >= 2 && currValue / Number(row.value) <= 2.9) {
                         patientsDetected.push({
-                            type: 'LAR2',
+                            detectionType: 'LAR2',
                             patientName: patientName,
                             creatinineLevel: currValue,
-                            difference: currValue - Number(row.value),
-                            differenceMultiplier: currValue / Number(row.value),
-                            differencePercentage: currValue / Number(row.value) * 100,
+                            difference: parseFloat(currValue - Number(row.value)).toFixed(2),
+                            differenceMultiplier: parseFloat(currValue / Number(row.value)).toFixed(2),
+                            differencePercentage: parseFloat(currValue / Number(row.value) * 100).toFixed(2),
                             type: "48h",
                             detectionDate: `${currDate.getDate() < 10 ? `0${currDate.getDate()}` : currDate.getDate()}.${currDate.getMonth() + 1 < 10 ? `0${currDate.getMonth() + 1}` : currDate.getMonth() + 1}.${currDate.getFullYear()} ${currDate.getHours() < 10 ? `0${currDate.getHours()}` : currDate.getHours()}:${currDate.getMinutes() < 10 ? `0${currDate.getMinutes()}` : currDate.getMinutes()}:${currDate.getSeconds() < 10 ? `0${currDate.getSeconds()}` : currDate.getSeconds()}`
                         });
@@ -75,20 +93,22 @@ exports.index = async (req, res, next) => {
                 };
     
                 // LAR 1 ****
-    
-                filteredRows = rows.filter(row => new Date(row.timestamp).getTime() >= timestamp - 1000 * 60 * 60 * 24 * 2 && new Date(row.timestamp).getTime() <= timestamp);
+                smFilteredRows = rows.filter(row => new Date(row.timestamp).getTime() <= timestamp);
+                smFilteredRows.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+                currTimestamp = new Date(smFilteredRows?.[0]?.timestamp).getTime();
+                filteredRows = rows.filter(row => new Date(row.timestamp).getTime() >= currTimestamp - 1000 * 60 * 60 * 24 * 2 && new Date(row.timestamp).getTime() <= currTimestamp);
                 sortedRows = filteredRows.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-                currValue = Number(sortedRows[0].value)
+                currValue = Number(sortedRows[0]?.value)
                 
                 for (let row of sortedRows) {
                     if (currValue - Number(row.value) >= 0.3) {
                         patientsDetected.push({
-                            type: 'LAR1',
+                            detectionType: 'LAR1',
                             patientName: patientName,
                             creatinineLevel: currValue,
-                            difference: currValue - Number(row.value),
-                            differenceMultiplier: currValue / Number(row.value),
-                            differencePercentage: currValue / Number(row.value) * 100,
+                            difference: parseFloat(currValue - Number(row.value)).toFixed(2),
+                            differenceMultiplier: parseFloat(currValue / Number(row.value)).toFixed(2),
+                            differencePercentage: parseFloat(currValue / Number(row.value) * 100).toFixed(2),
                             type: "48h",
                             detectionDate: `${currDate.getDate() < 10 ? `0${currDate.getDate()}` : currDate.getDate()}.${currDate.getMonth() + 1 < 10 ? `0${currDate.getMonth() + 1}` : currDate.getMonth() + 1}.${currDate.getFullYear()} ${currDate.getHours() < 10 ? `0${currDate.getHours()}` : currDate.getHours()}:${currDate.getMinutes() < 10 ? `0${currDate.getMinutes()}` : currDate.getMinutes()}:${currDate.getSeconds() < 10 ? `0${currDate.getSeconds()}` : currDate.getSeconds()}`
                         });
@@ -96,20 +116,22 @@ exports.index = async (req, res, next) => {
                     } 
                 };
     
-    
-                filteredRows = rows.filter(row => new Date(row.timestamp).getTime() >= timestamp - 1000 * 60 * 60 * 24 * 7 && new Date(row.timestamp).getTime() <= timestamp);
+                smFilteredRows = rows.filter(row => new Date(row.timestamp).getTime() <= timestamp);
+                smFilteredRows.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+                currTimestamp = new Date(smFilteredRows?.[0]?.timestamp).getTime();
+                filteredRows = rows.filter(row => new Date(row.timestamp).getTime() >= currTimestamp - 1000 * 60 * 60 * 24 * 7 && new Date(row.timestamp).getTime() <= currTimestamp);
                 sortedRows = filteredRows.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-                currValue = Number(sortedRows[0].value);
+                currValue = Number(sortedRows[0]?.value);
                 
                 for (let row of sortedRows) {
                     if (currValue / Number(row.value) >= 1.5){
                         patientsDetected.push({
-                            type: 'LAR1',
+                            detectionType: 'LAR1',
                             patientName: patientName,
                             creatinineLevel: currValue,
-                            difference: currValue - Number(row.value),
-                            differenceMultiplier: currValue / Number(row.value),
-                            differencePercentage: currValue / Number(row.value) * 100,
+                            difference: parseFloat(currValue - Number(row.value)).toFixed(2),
+                            differenceMultiplier: parseFloat(currValue / Number(row.value)).toFixed(2),
+                            differencePercentage: parseFloat(currValue / Number(row.value) * 100).toFixed(2),
                             type: "7d",
                             detectionDate: `${currDate.getDate() < 10 ? `0${currDate.getDate()}` : currDate.getDate()}.${currDate.getMonth() + 1 < 10 ? `0${currDate.getMonth() + 1}` : currDate.getMonth() + 1}.${currDate.getFullYear()} ${currDate.getHours() < 10 ? `0${currDate.getHours()}` : currDate.getHours()}:${currDate.getMinutes() < 10 ? `0${currDate.getMinutes()}` : currDate.getMinutes()}:${currDate.getSeconds() < 10 ? `0${currDate.getSeconds()}` : currDate.getSeconds()}`
                         });
@@ -120,7 +142,7 @@ exports.index = async (req, res, next) => {
                    
                 return null;
             } catch (e) {
-                console.log(e.error);
+                console.log(e);
             }
           
         }));
@@ -145,7 +167,6 @@ exports.getIndex = async (req, res, next) => {
         await db.query("USE ??", [`${process.env.DB_PREFIX}tech_for_life`]);
         const tablesUnmapped = await db.query("SHOW TABLES");
         const tables = tablesUnmapped.map(table => Object.values(table)[0]);
-        console.log(tables);
         const tablesObject = {};
         await Promise.all(tables.map(async table => {
             const rows = await db.query("SELECT * FROM ??", [`${process.env.DB_PREFIX}tech_for_life.${table}`]);
