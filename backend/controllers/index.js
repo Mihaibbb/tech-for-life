@@ -1,4 +1,7 @@
 const db = require("../db");
+const jwt = require("jsonwebtoken");
+const redis = require('redis');
+const JWTR =  require('jwt-redis').default;
 
 exports.createIndex = async (req, res, next) => {
     const { patientId, year, month, day, hour, minute, value } = req.body;
@@ -14,15 +17,20 @@ exports.createIndex = async (req, res, next) => {
 };
 
 exports.index = async (req, res, next) => {
-    const { username, password } = req.body;
+    const { token } = req.body;
     
     try {
+        const decoded = jwt.verify(token, process.env.TOKEN_KEY)
+        console.log(decoded);
+        if (!decoded || !decoded?.username) return res.status(403).json({ success: false });
+        
         await db.query("USE ??", [`${process.env.DB_PREFIX}tech_for_life`]);
-        const doctorsFound = await db.query("SELECT * FROM ?? WHERE username = ? AND password = ?", ["doctors", username, password]);
+        const doctorsFound = await db.query("SELECT * FROM ?? WHERE accessToken = ?", ["doctors", token]);
         if (!doctorsFound || !doctorsFound.length) return res.status(404).json({ 
             success: false,
             message: "Doctor doesn't exist"
         });
+
         await db.query("USE ??", [`${process.env.DB_PREFIX}tech_for_life`]);
 
         const doctor = doctorsFound[0];
@@ -151,10 +159,7 @@ exports.index = async (req, res, next) => {
             success: true
         });
 
-        res.status(200).json({ 
-            success: true, 
-            patients: patientsDetected,
-        });
+        res.status(200).json(patientsDetected);
     } catch (e) {
         console.log(e);
         res.status(404).json({ 

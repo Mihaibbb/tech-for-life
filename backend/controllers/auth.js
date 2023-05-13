@@ -8,7 +8,7 @@ exports.login = async (req, res) => {
     const { username, password } = req.body;
 
     try {
-        if (sqlInjectionBlacklist(username) || sqlInjectionBlacklist(password)) return res.status(404).json({ success: false, message: "Sql Injection detected!" });
+        //if (sqlInjectionBlacklist(username) || sqlInjectionBlacklist(password)) return res.status(404).json({ success: false, message: "Sql Injection detected!" });
         const doctorFound = await db.query("SELECT * FROM ?? WHERE username = ? AND password = ?", [`${process.env.DB_PREFIX}tech_for_life.doctors`, username, password]);
         if (doctorFound?.length !== 1) return res.status(404).json({ 
             success: false
@@ -17,10 +17,7 @@ exports.login = async (req, res) => {
         const token = jwt.sign({ username }, process.env.TOKEN_KEY);
         await db.query("UPDATE ?? SET accessToken = ? WHERE username = ?", [`${process.env.DB_PREFIX}tech_for_life.doctors`, token, username]);
 
-        res.status(200).json({
-            success: true,
-            token
-        });
+        res.status(200).send(token);
 
       
     } catch (e) {
