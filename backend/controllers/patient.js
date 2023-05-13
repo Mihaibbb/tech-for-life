@@ -4,6 +4,8 @@ const db = require("../db");
 exports.createPatient = async (req, res, next) => {
     const { patientName } = req.body;
     try {
+        const otherUsers = await db.query("SELECT * FROM ?? WHERE name = ?", [`${process.env.DB_PREFIX}tech_for_life.patients`, patientName]);
+        if (otherUsers.length) return res.status(300).json({ success: false, message: "Patient already exists!" });
         const patientId = generateId(8);
         await db.query("INSERT INTO ?? (patientId, name) VALUES (?, ?)", [`${process.env.DB_PREFIX}tech_for_life.patients`, patientId, patientName]);
         
