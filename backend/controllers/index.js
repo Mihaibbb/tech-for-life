@@ -14,7 +14,7 @@ exports.createIndex = async (req, res, next) => {
 };
 
 exports.index = async (req, res, next) => {
-    const { username, password, year, month, day, hour, minute } = req.body;
+    const { username, password } = req.body;
     
     try {
         await db.query("USE ??", [`${process.env.DB_PREFIX}tech_for_life`]);
@@ -26,7 +26,7 @@ exports.index = async (req, res, next) => {
         await db.query("USE ??", [`${process.env.DB_PREFIX}tech_for_life`]);
 
         const doctor = doctorsFound[0];
-        const timestamp = new Date(Number(year), Number(month), Number(day), Number(hour), Number(minute)).getTime();
+        const timestamp = new Date().getTime();
         const patientsTablesUnfilteredUnmapped = await db.query("SHOW TABLES");
         const patientsTablesUnfiltered = patientsTablesUnfilteredUnmapped.map(table => Object.values(table)[0]);
         const patientsTables = patientsTablesUnfiltered.filter(table => table.includes("patient_"));
