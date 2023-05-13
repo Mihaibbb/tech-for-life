@@ -2,18 +2,19 @@ const redis = require('redis');
 const JWTR =  require('jwt-redis').default;
 const db = require("../db");
 const jwt = require("jsonwebtoken");
+const sqlInjectionBlacklist = require("../functions/sqlInjection");
 
 exports.login = async (req, res) => {
     const { username, password } = req.body;
 
     try {
-        const doctorFound = await db.query("SELECT * FROM ?? WHERE username = ?  AND password = ?", [`${process.env.DB_PREFIX}tech_for_life.doctors`, username, password]);
+        if (sqlInjectionBlacklist(username) || sqlInjectionBlacklist(password)) return res.status(404).json({ success: false, message: "Sql Injection detected!" });
+        const doctorFound = await db.query("SELECT * FROM ?? WHERE username = ? AND password = ?", [`${process.env.DB_PREFIX}tech_for_life.doctors`, username, password]);
         if (doctorFound?.length !== 1) return res.status(404).json({ 
             success: false
         });
 
         const token = jwt.sign({ username }, process.env.TOKEN_KEY);
-        
         await db.query("UPDATE ?? SET accessToken = ? WHERE username = ?", [`${process.env.DB_PREFIX}tech_for_life.doctors`, token, username]);
 
         res.status(200).json({
@@ -36,11 +37,12 @@ exports.validToken = async (req, res, next) => {
     try {
         const decoded = jwt.verify(token, process.env.TOKEN_KEY);
         console.log(decoded);
-        if (decoded?.username) return res.status(200).json({ 
+        const doctor = await db.query("SELECT * FROM ?? WHERE username = ?", [`${process.env.DB_PREFIX}tech_for_life.doctors`, decoded?.username]);
+        if (decoded?.username && doctor?.length === 1) return res.status(200).json({ 
             success: true
         });
 
-        return res.status(200).json({ success: false, message: "Token is invalid!" });
+        res.status(404).json({ success: false, message: "Token is invalid!" });
     } catch (e) {
         console.log(e);
         res.status(404).json({

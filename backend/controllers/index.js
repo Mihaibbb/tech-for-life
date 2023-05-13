@@ -147,6 +147,10 @@ exports.index = async (req, res, next) => {
           
         }));
 
+        if (!patientsDetected.length) res.status(251).json({
+            success: true
+        });
+
         res.status(200).json({ 
             success: true, 
             patients: patientsDetected,
